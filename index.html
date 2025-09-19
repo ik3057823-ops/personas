@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fire Emergency Scenario — Game Mode</title>
+  <style>
+    :root{
+      --bg:#ffffff; /* keep white background */
+      --ink:#0b1324;
+      --muted:#51607a;
+      --primary:#2563eb;
+      --primary-ink:#0b4c6e;
+      --accent:#10b981;
+      --warn:#ef4444;
+      --card:#f8fafc;
+      --border:#e2e8f0;
+      --shadow:0 12px 40px rgba(2,6,23,.10);
+      --radius:18px;
+      --glass:rgba(255,255,255,.75);
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans"}
+    .wrap{max-width:1100px;margin:0 auto;padding:32px 16px 64px}
+
+    /* --- GAME HUD -------------------------------------------------------- */
+    .hud{position:sticky;top:0;z-index:5;backdrop-filter:saturate(140%) blur(6px);background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.6));border-bottom:1px solid var(--border)}
+    .hud-inner{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px 6px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:12px;background:conic-gradient(from 210deg at 50% 50%, #60a5fa, #22d3ee, #34d399, #60a5fa);box-shadow:var(--shadow)}
+    h1{margin:0;font-size:clamp(18px,2.2vw,24px);letter-spacing:.2px}
+
+    .stats{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .chip{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;font-size:14px;box-shadow:0 1px 0 rgba(2,6,23,.04)}
+    .lives{letter-spacing:1px}
+    .lives .heart{filter:drop-shadow(0 2px 2px rgba(239,68,68,.25))}
+    .toggle{cursor:pointer}
+
+    .track{height:10px;background:#eef2f7;border-radius:99px;border:1px solid var(--border);overflow:hidden}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,#60a5fa,#6366f1,#22d3ee);transition:width .5s cubic-bezier(.22,.61,.36,1)}
+
+    /* --- GAME BOARD ------------------------------------------------------ */
+    .board{margin-top:18px;display:grid;gap:16px}
+    .level-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .level-head{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:16px 18px;background:#fff;border-bottom:1px solid var(--border)}
+    .level-id{font-weight:700}
+    .timer{font-variant-numeric:tabular-nums}
+
+    .level-body{padding:22px}
+    .prompt{font-size:22px;font-weight:800;margin:0 0 8px}
+    .context{color:var(--muted);margin:0 0 16px}
+
+    .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .option{position:relative;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);background:#fff;border-radius:16px;padding:14px 16px;text-align:left;cursor:pointer;transition:transform .08s ease, box-shadow .2s ease, border-color .2s ease}
+    .option:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(2,6,23,.10)}
+    .option[aria-pressed="true"]{outline:3px solid #bfdbfe;border-color:#93c5fd}
+    .opt-k{flex:0 0 auto;width:32px;height:32px;border-radius:10px;border:1px solid var(--border);display:grid;place-items:center;font-weight:800;color:var(--muted)}
+    .opt-main strong{font-weight:800}
+
+    .feedback{margin-top:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:#fff;display:none}
+    .feedback.good{border-color:#d1fae5;box-shadow:0 0 0 3px #ecfdf5 inset}
+    .feedback.bad{border-color:#fee2e2;box-shadow:0 0 0 3px #fff1f2 inset}
+
+    .controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--border);background:#fff}
+    .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer;box-shadow:0 1px 0 rgba(2,6,23,.04)}
+    .btn.primary{background:var(--primary);color:#fff;border-color:transparent}
+    .btn.danger{background:var(--warn);color:#fff;border-color:transparent}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    .hint{font-size:14px;color:var(--muted)}
+
+    /* --- MODALS / OVERLAYS ---------------------------------------------- */
+    .summary{display:none;margin-top:18px}
+    .summary h2{margin:0 0 6px}
+    .summary table{width:100%;border-collapse:collapse;border:1px solid var(--border)}
+    .summary th,.summary td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}
+    .summary tr:nth-child(even){background:#fafcff}
+    .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;font-size:13px}
+
+    /* --- Confetti (simple DOM particles) -------------------------------- */
+    .confetti{position:fixed;top:0;left:0;width:100%;height:0;pointer-events:none;overflow:visible}
+    .particle{position:absolute;top:-10px;width:10px;height:14px;border-radius:2px;opacity:.9}
+
+    /* --- Accessibility focus */
+    :focus-visible{outline:3px solid #93c5fd;outline-offset:2px;border-radius:12px}
+  </style>
+</head>
+<body>
+  <div class="hud" role="navigation" aria-label="Game HUD">
+    <div class="wrap hud-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Fire Emergency — Game Mode</h1>
+          <div class="hint">Make the right calls under time pressure. Keyboard: 1/2/3 to choose.</div>
+        </div>
+      </div>
+      <div class="stats" aria-live="polite" aria-atomic="true">
+        <div class="chip"><strong>Level</strong> <span id="levelNow">1</span>/<span id="levelTotal">5</span></div>
+        <div class="chip"><strong>Score</strong> <span id="score">0</span></div>
+        <div class="chip lives" title="Lives"><span id="lives">❤❤❤</span></div>
+        <div class="chip"><strong>Streak</strong> <span id="streak">0</span>×</div>
+        <div class="chip"><strong>Timer</strong> <span id="timer">00:30</span></div>
+        <div class="chip toggle" id="soundToggle" role="button" aria-pressed="true" title="Toggle sounds">🔊 Sound</div>
+      </div>
+      <div class="track" aria-label="Progress">
+        <div class="bar" id="progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <section class="board level-card" aria-labelledby="scenarioTitle">
+      <div class="level-head">
+        <div class="level-id" id="scenarioTitle">Level 1</div>
+        <div class="hint" id="goal">Goal: make the safest decision.</div>
+      </div>
+      <div class="level-body" id="levelBody">
+        <!-- dynamic -->
+      </div>
+      <div class="controls">
+        <div class="left">
+          <button class="btn" id="hintBtn">💡 Hint</button>
+          <button class="btn" id="restartBtn">↻ Restart</button>
+        </div>
+        <div class="right">
+          <button class="btn" id="backBtn">← Back</button>
+          <button class="btn primary" id="nextBtn" disabled>Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="summary" id="summary" aria-live="polite">
+      <h2>Session Summary</h2>
+      <p class="hint">You can print or export results for your learning portfolio.</p>
+      <div class="badges" id="badges"></div>
+      <table id="summaryTable">
+        <thead>
+          <tr><th>Decision Point</th><th>Your Choice</th><th>Consequence / Guidance</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn" onclick="window.print()">🖨️ Print/Save</button>
+        <button class="btn" id="exportBtn">⬇️ Export JSON</button>
+        <button class="btn" id="clearBest">🧹 Clear Best Score</button>
+      </div>
+      <p class="hint" style="margin-top:6px">UK: Dial <strong>999</strong> (or <strong>112</strong>), never use lifts during a fire, attempt extinguishing only if trained and safe.</p>
+    </section>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+
+  <script>
+    // --------------------------- DATA ---------------------------
+    const SCENES = [
+      { id:"intro", title:"Welcome", time:30, context:"You are working on the 3rd floor of a modern office in London. You notice a faint smell of smoke.", options:[
+        {key:"1", text:"Ignore it; it will probably clear.", correct:false, consequence:"Delaying wastes precious seconds and can put others at risk."},
+        {key:"2", text:"Check the nearest area safely (feel doors with the back of your hand), activate the alarm if needed, and notify others.", correct:true, consequence:"Correct. Investigate only if safe, and raise the alarm early."},
+        {key:"3", text:"Take the lift to see if other floors are affected.", correct:false, consequence:"Never use lifts in a suspected fire. Use stairs."}
+      ], guidance:"R.A.C.E.: Rescue (if safe), Alarm, Contain (close doors), Evacuate." },
+      { id:"bin-fire", title:"Small Fire Found", time:35, context:"In the copy room you see a small waste‑paper bin fire. A water and a CO₂ extinguisher are nearby. You are extinguisher-trained and the exit is clear.", options:[
+        {key:"1", text:"Use the CO₂ extinguisher from ~2m, sweeping at the base.", correct:false, consequence:"CO₂ is primarily for electrical fires; it can blow light paper around, worsening a paper fire."},
+        {key:"2", text:"Use the water extinguisher at the base of the flames, with your back to the exit; stop if it spreads.", correct:true, consequence:"Correct for ordinary combustibles (Class A). Keep a clear exit and stop if not immediately controlled."},
+        {key:"3", text:"Close the door and walk away without raising the alarm.", correct:false, consequence:"Always raise the alarm and do not leave a fire unattended."}
+      ], guidance:"PASS: Pull, Aim, Squeeze, Sweep. Only attempt if trained, the fire is small, the right type of extinguisher is available, and your exit is clear." },
+      { id:"evac-route", title:"Evacuation Route", time:30, context:"The corridor is moderately smoky on your planned route to the stairs.", options:[
+        {key:"1", text:"Proceed standing upright at normal pace to avoid panic.", correct:false, consequence:"Smoke rises; staying low reduces inhalation and improves visibility."},
+        {key:"2", text:"Stay low/crawl if needed, close doors behind you, and head to an alternative stairwell if the first is blocked.", correct:true, consequence:"Correct actions: stay low, choose a safe alternate route, and close doors to slow fire spread."},
+        {key:"3", text:"Wait for the lift; it will be faster to clear the building.", correct:false, consequence:"Never use lifts during a fire."}
+      ], guidance:"Do not use lifts. Close doors as you go. Follow illuminated exit signage and assembly instructions." },
+      { id:"assist-colleague", title:"Assisting a Colleague", time:35, context:"A colleague using a wheelchair is at the refuge point. An evacuation chair is nearby, and the Fire Warden is present.", options:[
+        {key:"1", text:"Coordinate with the Fire Warden to deploy the evac chair, following your training and building procedure.", correct:true, consequence:"Correct. Follow your training and the Warden's lead; use designated equipment and refuge points."},
+        {key:"2", text:"Carry them down the stairs with two volunteers to save time.", correct:false, consequence:"Unsafe for everyone; use proper equipment and trained personnel."},
+        {key:"3", text:"Leave them at the refuge point and continue without informing anyone.", correct:false, consequence:"Always inform the Fire Warden/response team; refuge points must be monitored and assisted."}
+      ], guidance:"Follow the building's Personal Emergency Evacuation Plans (PEEPs) and use refuges and evac chairs per training." },
+      { id:"assembly", title:"Assembly & Reporting", time:30, context:"You reach the assembly point outside. Some colleagues want to re‑enter to collect belongings.", options:[
+        {key:"1", text:"Do not re‑enter. Account for your team, report anyone missing to the Fire Warden, and be ready to brief the Fire Service (dial 999/112).", correct:true, consequence:"Correct. Accountability and communication speed up the response and keep everyone safe."},
+        {key:"2", text:"Go back in quickly for your laptop; it will just take a minute.", correct:false, consequence:"Never re‑enter until the building is declared safe by the Fire Service."},
+        {key:"3", text:"Disperse; the Fire Service will contact people if needed.", correct:false, consequence:"Stay at the assembly point for roll call and information."}
+      ], guidance:"UK: call 999 (or 112). Await the all‑clear from incident command before re‑entry." },
+    ];
+
+    // --------------------------- STATE ---------------------------
+    let idx = 0, score = 0, streak = 0, lives = 3;
+    let perSceneTime = SCENES[0].time, timeLeft = perSceneTime, timerHandle = null;
+    const decisions = []; // {id,title,choice,consequence,correct}
+    let startTs = Date.now();
+    let soundsOn = true;
+
+    // --------------------------- ELEMENTS ---------------------------
+    const levelBody = document.getElementById('levelBody');
+    const nextBtn = document.getElementById('nextBtn');
+    const backBtn = document.getElementById('backBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const hintBtn = document.getElementById('hintBtn');
+    const timerEl = document.getElementById('timer');
+    const progress = document.getElementById('progress');
+    const livesEl = document.getElementById('lives');
+    const scoreEl = document.getElementById('score');
+    const streakEl = document.getElementById('streak');
+    const levelNow = document.getElementById('levelNow');
+    const levelTotal = document.getElementById('levelTotal');
+    const scenarioTitle = document.getElementById('scenarioTitle');
+    const goalEl = document.getElementById('goal');
+    const soundToggle = document.getElementById('soundToggle');
+
+    const summaryEl = document.getElementById('summary');
+    const summaryTable = document.querySelector('#summaryTable tbody');
+    const badgesEl = document.getElementById('badges');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearBest = document.getElementById('clearBest');
+
+    levelTotal.textContent = SCENES.length;
+
+    // --------------------------- AUDIO (WebAudio tiny beeps) -------------
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(freq=600, dur=120, type='sine', vol=.15){
+      if(!soundsOn) return;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.value = vol;
+      o.connect(g).connect(ctx.destination); o.start();
+      setTimeout(()=>{o.stop();}, dur);
+    }
+
+    // --------------------------- CONFETTI ------------------------
+    const confetti = document.getElementById('confetti');
+    function burst(){
+      for(let i=0;i<24;i++){
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random()*100 + '%';
+        p.style.background = `hsl(${Math.random()*360},90%,60%)`;
+        const rot = (Math.random()*720-360)|0;
+        p.animate([
+          {transform:`translateY(0) rotate(0deg)`},
+          {transform:`translateY(${window.innerHeight}px) rotate(${rot}deg)`}
+        ],{ duration: 1200 + Math.random()*600, easing:'cubic-bezier(.22,.61,.36,1)' });
+        confetti.appendChild(p);
+        setTimeout(()=>p.remove(), 2000);
+      }
+    }
+
+    // --------------------------- RENDER --------------------------
+    function render(){
+      summaryEl.style.display = 'none';
+      const s = SCENES[idx];
+      perSceneTime = s.time; timeLeft = perSceneTime; updateTimer(); startTimer();
+
+      levelNow.textContent = idx+1; scenarioTitle.textContent = `Level ${idx+1}`; goalEl.textContent = `Goal: ${s.title}`;
+      progress.style.width = `${Math.round(idx/SCENES.length*100)}%`;
+      backBtn.disabled = idx===0; nextBtn.disabled = true; hintBtn.disabled = false;
+
+      levelBody.innerHTML = `
+        <h2 class="prompt">${s.title}</h2>
+        <p class="context">${s.context}</p>
+        <div class="options" role="group" aria-label="Choices">
+          ${s.options.map(o=>`
+            <button class="option" data-key="${o.key}" aria-pressed="false">
+              <span class="opt-k">${o.key}</span>
+              <div class="opt-main"><strong>${o.text}</strong></div>
+            </button>
+          `).join('')}
+        </div>
+        <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+        <p class="hint">Tip: ${s.guidance}</p>
+      `;
+      levelBody.querySelectorAll('.option').forEach(btn=>btn.addEventListener('click',()=>select(btn.dataset.key)));
+    }
+
+    function startTimer(){ stopTimer(); timerHandle = setInterval(()=>{ timeLeft--; updateTimer(); if(timeLeft<=0){ timeOut(); } },1000); }
+    function stopTimer(){ if(timerHandle) clearInterval(timerHandle); }
+    function updateTimer(){ const m = Math.floor(timeLeft/60).toString().padStart(2,'0'); const s = (timeLeft%60).toString().padStart(2,'0'); timerEl.textContent = `${m}:${s}`; }
+
+    function loseLife(){ lives = Math.max(0,lives-1); livesEl.textContent = '❤'.repeat(lives) + '♡'.repeat(3-lives); if(lives===0){ gameOver(); } }
+    function addScore(base){ const mult = Math.max(1, Math.min(5, Math.floor(streak/2)+1)); const bonus = timeLeft>perSceneTime/2 ? 25 : 0; const delta = base*mult + bonus; score += delta; scoreEl.textContent = score; return {delta, mult, bonus}; }
+
+    function select(key){
+      const s = SCENES[idx];
+      const choice = s.options.find(o=>o.key===key);
+      if(!choice) return;
+      levelBody.querySelectorAll('.option').forEach(b=>b.setAttribute('aria-pressed','false'));
+      const current = levelBody.querySelector(`.option[data-key="${key}"]`);
+      current.setAttribute('aria-pressed','true');
+
+      const fb = document.getElementById('feedback');
+      if(choice.correct){
+        streak++; const {delta,mult,bonus} = addScore(100); beep(800,140,'triangle');
+        fb.className = 'feedback good'; fb.style.display='block';
+        fb.innerHTML = `<div><strong>Great!</strong> +${delta} points (x${mult} streak${bonus?` + ${bonus} time bonus`:''}). ${choice.consequence}</div>`;
+        burst();
+      } else {
+        streak = 0; beep(220,160,'sawtooth'); loseLife();
+        fb.className = 'feedback bad'; fb.style.display='block';
+        fb.innerHTML = `<div><strong>Not safe.</strong> ${choice.consequence}</div>`;
+      }
+
+      const rec = { id:s.id, title:s.title, choice:`${choice.key}: ${choice.text}`, consequence:choice.consequence, correct:choice.correct };
+      const i = decisions.findIndex(d=>d.id===s.id); if(i>=0) decisions.splice(i,1,rec); else decisions.push(rec);
+
+      streakEl.textContent = streak;
+      nextBtn.disabled = false;
+      stopTimer();
+    }
+
+    function timeOut(){
+      beep(180,240,'square');
+      const fb = document.getElementById('feedback');
+      fb.className = 'feedback bad'; fb.style.display='block';
+      fb.innerHTML = `<div><strong>Time up!</strong> You ran out of time on this level. A life was lost.</div>`;
+      loseLife();
+      nextBtn.disabled = false; stopTimer();
+    }
+
+    function next(){ if(idx<SCENES.length-1){ idx++; render(); } else { finish(); } }
+    function back(){ if(idx>0){ idx--; render(); } }
+
+    function gameOver(){
+      stopTimer();
+      nextBtn.disabled = true; backBtn.disabled = true; hintBtn.disabled = true;
+      levelBody.innerHTML = `<h2 class="prompt">Game Over</h2><p class="context">You're out of lives. Review your decisions below and try again.</p>`;
+      finish();
+    }
+
+    function finish(){
+      stopTimer(); progress.style.width='100%';
+      // Build summary table
+      summaryTable.innerHTML = decisions.map(d=>`<tr><td><strong>${d.title}</strong></td><td>${d.choice}</td><td>${d.consequence}</td></tr>`).join('');
+      summaryEl.style.display = 'block';
+
+      // Badges
+      badgesEl.innerHTML = '';
+      const totalCorrect = decisions.filter(d=>d.correct).length;
+      const quick = totalCorrect===SCENES.length && decisions.length===SCENES.length; // completed
+      makeBadge(`🏁 Score: ${score}`);
+      if(totalCorrect===SCENES.length) makeBadge('🌟 Perfect Safety');
+      if(streak>=3) makeBadge('🔥 Hot Streak');
+      if(quick) makeBadge('⏱️ Timekeeper');
+
+      // Best score
+      const best = JSON.parse(localStorage.getItem('fireGameBest')||'null');
+      const now = {score, date:new Date().toISOString()};
+      if(!best || score>best.score){ localStorage.setItem('fireGameBest', JSON.stringify(now)); makeBadge('🏆 New Personal Best!'); }
+    }
+
+    function makeBadge(text){ const b=document.createElement('div'); b.className='badge'; b.textContent=text; badgesEl.appendChild(b); }
+
+    function restart(){ idx=0; score=0; streak=0; lives=3; decisions.length=0; scoreEl.textContent=0; streakEl.textContent=0; livesEl.textContent='❤❤❤'; render(); }
+
+    // Hint (once per level): briefly highlight the safest option
+    hintBtn.addEventListener('click',()=>{
+      const s = SCENES[idx];
+      const ok = s.options.find(o=>o.correct);
+      const el = levelBody.querySelector(`.option[data-key="${ok.key}"]`);
+      el.animate([{boxShadow:'0 0 0 0 rgba(34,197,94,0)'},{boxShadow:'0 0 0 8px rgba(34,197,94,.35)'}],{duration:600, direction:'alternate', iterations:2, easing:'ease-out'});
+      beep(700,120,'sine');
+      hintBtn.disabled = true;
+    });
+
+    // Export
+    exportBtn.addEventListener('click',()=>{
+      const data = {timestamp:new Date().toISOString(), total:SCENES.length, score, streak, lives, duration_sec: Math.floor((Date.now()-startTs)/1000), decisions};
+      const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='fire-scenario-results.json'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    clearBest.addEventListener('click',()=>{ localStorage.removeItem('fireGameBest'); makeBadge('🧹 Best score cleared'); });
+
+    // Keyboard shortcuts: 1/2/3 select, Enter = Next
+    document.addEventListener('keydown', (e)=>{
+      if(['1','2','3'].includes(e.key)){
+        const btn = levelBody.querySelector(`.option[data-key="${e.key}"]`); if(btn) btn.click();
+      } else if(e.key==='Enter' && !nextBtn.disabled){ next(); }
+    });
+
+    // Buttons
+    nextBtn.addEventListener('click', next);
+    backBtn.addEventListener('click', back);
+    restartBtn.addEventListener('click', restart);
+
+    // Sound toggle
+    soundToggle.addEventListener('click',()=>{ soundsOn = !soundsOn; soundToggle.setAttribute('aria-pressed', String(soundsOn)); soundToggle.textContent = (soundsOn? '🔊 Sound' : '🔇 Sound'); });
+
+    // INIT
+    render();
+  </script>
+</body>
+</html>
