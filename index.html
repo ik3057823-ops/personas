@@ -109,11 +109,21 @@
     /* Ensure strong contrast for headings/subheads */
     .card-head h2{color:#0b1324}
     .card-head .subhead{color:#334155}
-      /* Ensure key headings and options use pixel-game monospace */
+
+    /* Ensure key headings and options use pixel-game monospace */
     .brand h1, .brand .subhead{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; letter-spacing:.5px; font-weight:900}
     #cover .card-head h2{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; letter-spacing:.4px; font-weight:900}
     #board .option, #board .option .opt-main, #board .opt-k{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; letter-spacing:.3px; font-weight:700}
     #board .option .opt-main strong{font-weight:900}
+
+    /* --- Fire burn FX (on wrong answers) ------------------------------- */
+    .firefx{position:fixed;inset:0;pointer-events:none;overflow:visible;z-index:6}
+    .ember{position:absolute;width:16px;height:16px;border-radius:50%;opacity:.95;mix-blend-mode:screen;filter:blur(.2px);will-change:transform, opacity;box-shadow:0 0 12px rgba(255,140,0,.7), 0 0 24px rgba(255,80,0,.5);background:radial-gradient(circle at 40% 35%, rgba(255,255,200,.95) 0%, rgba(255,210,0,.9) 40%, rgba(255,140,0,.85) 65%, rgba(255,70,0,.75) 100%)}
+    .ember:after{content:"";position:absolute;left:50%;bottom:-8px;width:40%;height:12px;transform:translateX(-50%);background:radial-gradient(ellipse at center, rgba(255,140,0,.6), rgba(255,80,0,0));filter:blur(4px)}
+    @keyframes flameRise{0%{transform:translateY(0) scale(.6) rotate(0deg);opacity:.95}60%{opacity:.7}100%{transform:translateY(-180px) scale(1.2) rotate(20deg);opacity:0}}
+    /* subtle screen shake to sell impact */
+    @keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+    body.shake{animation:shake 420ms cubic-bezier(.36,.07,.19,.97) both}
   </style>
 </head>
 <body>
@@ -211,6 +221,7 @@
   </div>
 
   <div class="confetti" id="confetti"></div>
+  <div class="firefx" id="firefx"></div>
 
   <script>
     // --------------------------- DATA ---------------------------
@@ -296,6 +307,40 @@
         const rot = (Math.random()*720-360)|0;
         p.animate([{transform:`translateY(0) rotate(0deg)`},{transform:`translateY(${window.innerHeight}px) rotate(${rot}deg)`}],{ duration: 1000 + Math.random()*500, easing:'cubic-bezier(.22,.61,.36,1)' });
         confetti.appendChild(p); setTimeout(()=>p.remove(), 1600);
+      }
+    }
+
+    // --------------------------- FIRE BURNS (wrong) --------------
+    const firefx = document.getElementById('firefx');
+    function burn(){
+      // brief screen shake
+      document.body.classList.add('shake');
+      setTimeout(()=>document.body.classList.remove('shake'), 450);
+      // spawn embers from lower half of screen
+      const count = 22;
+      for(let i=0;i<count;i++){
+        const e = document.createElement('div');
+        e.className = 'ember';
+        const size = 8 + Math.random()*16; // vary size 8-24px
+        e.style.width = size + 'px';
+        e.style.height = size + 'px';
+        const x = Math.random()*window.innerWidth;
+        const y = window.innerHeight - (Math.random()*window.innerHeight*0.4);
+        e.style.left = x + 'px';
+        e.style.top = y + 'px';
+        // tint the glow
+        const hue = 18 + Math.random()*30; // orange-red range
+        e.style.background = `radial-gradient(circle at 40% 35%, hsla(${hue},100%,88%,.95) 0%, hsla(${hue},100%,55%,.9) 40%, hsla(${hue},95%,46%,.85) 65%, hsla(${hue},85%,40%,.75) 100%)`;
+        e.style.boxShadow = `0 0 10px hsla(${hue},100%,55%,.65), 0 0 22px hsla(${hue},95%,45%,.45)`;
+        const dur = 700 + Math.random()*600;
+        e.style.animation = `flameRise ${dur}ms cubic-bezier(.22,.61,.36,1) forwards`;
+        // small random drift
+        e.animate([
+          { transform: 'translate(0, 0) scale(.9)' },
+          { transform: `translate(${(Math.random()*40-20).toFixed(0)}px, -160px) scale(1.2)` }
+        ], { duration: dur, easing: 'cubic-bezier(.22,.61,.36,1)' });
+        firefx.appendChild(e);
+        setTimeout(()=>e.remove(), dur+80);
       }
     }
 
@@ -385,6 +430,7 @@
       } else {
         beep(220,160,'sawtooth');
         fb.className = 'feedback bad show';
+        burn();
         fb.innerHTML = `<div><strong>Not the safest option.</strong> ${choice.consequence}</div>`;
       }
 
@@ -607,8 +653,14 @@
           console.assert(bodyEl, '#levelBody should exist');
           const opts = document.querySelectorAll('#levelBody .option');
           console.assert(opts.length===3, 'render: expected 3 options');
-          // Reset to cover for users
-          quitToCover();
+          // Test 5: burn() spawns embers
+          const before = document.getElementById('firefx').childElementCount;
+          burn();
+          setTimeout(()=>{
+            const after = document.getElementById('firefx').childElementCount;
+            console.assert(after>before, 'burn: should create ember elements');
+            quitToCover();
+          }, 50);
         }, 20);
       }catch(e){ console.warn('Quick tests error (non-fatal):', e); }
     })();
