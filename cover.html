@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fire Safety Training — Cover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;          /* slate-900 */
+      --card: #111827;        /* gray-900 */
+      --muted: #94a3b8;       /* slate-400 */
+      --text: #e5e7eb;        /* gray-200 */
+      --accent: #ef4444;      /* red-500 */
+      --accent-600: #dc2626;  /* red-600 */
+      --ring: rgba(239, 68, 68, 0.35);
+    }
+    html, body {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(239,68,68,.08), transparent 50%),
+                  radial-gradient(1000px 600px at 80% 90%, rgba(59,130,246,.08), transparent 50%),
+                  var(--bg);
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      display: grid;
+      place-items: center;
+    }
+
+    .card {
+      width: min(92vw, 880px);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(6px);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      overflow: hidden;
+      animation: fadeIn .6s ease both;
+    }
+
+    header {
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Extra scrim at the bottom to completely hide any words/logos baked into the image */
+    .image-scrim { display: none !important; }
+
+    .hero {
+      height: 380px;
+      background-image: url('https://raw.githubusercontent.com/ik3057823-ops/images-5/refs/heads/main/613370c7-dc09-402e-8618-dfbab5094700.png');
+      background-size: 110%; /* start slightly zoomed-in */
+      background-position: center 78%; /* nudged further up to reveal more ground */
+      background-repeat: no-repeat;
+      background-color: #0b0f1a;
+      transition: background-size 0.6s ease;
+    }
+    .hero:hover, .hero:focus-visible {
+      background-size: 100%; /* zoom out on hover/focus */
+      outline: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero { transition: none; }
+    }
+
+    .overlay { display: none !important; }
+
+    .content {
+      padding: 32px clamp(20px, 4vw, 40px) 36px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 0 auto 22px;
+      max-width: 52ch;
+      color: var(--muted);
+      font-size: clamp(16px, 2.2vw, 18px);
+      line-height: 1.55;
+    }
+
+    .meta {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      margin: 0 auto 26px;
+    }
+
+    .meta svg {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+    }
+
+    .meta span {
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .btn-start {
+      appearance: none;
+      border: none;
+      padding: 14px 26px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-600));
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 10px 24px var(--ring);
+      transition: transform .08s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .btn-start:focus-visible {
+      outline: 3px solid rgba(255,255,255,0.6);
+      outline-offset: 3px;
+    }
+    .btn-start:hover { filter: brightness(1.02); }
+    .btn-start:active { transform: translateY(1px) scale(0.995); }
+
+    footer {
+      padding: 24px 0 6px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main" aria-labelledby="title">
+    <header class="hero" tabindex="0"$1></header>
+
+    <div class="content">
+      <h1 id="title">Fire Safety Training for the Workplace</h1>
+      <p class="subtitle">Learn essential procedures to prevent, detect, and respond to fire incidents safely at work.</p>
+
+      <div class="meta" aria-label="Estimated time">
+        <!-- Accessible clock icon (inline SVG) -->
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" opacity="0.9"/>
+          <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>20 minutes</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn-start" id="startBtn" type="button" aria-label="Start training">Start</button>
+      </div>
+    </div>
+
+    <footer>
+      <small>© <span id="year"></span> Fire Safety Training</small>
+    </footer>
+  </main>
+
+  <script>
+    // Set year and provide a simple start action placeholder
+    document.getElementById('year').textContent = new Date().getFullYear();
+    document.getElementById('startBtn').addEventListener('click', () => {
+      // Replace this with navigation to your first module/page
+      alert('Starting Fire Safety Training...');
+    });
+  </script>
+</body>
+</html>
